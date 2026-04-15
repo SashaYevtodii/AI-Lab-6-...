@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>ToDo List</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+<h1>Мій ToDo List</h1>
+
+<div class="input-block">
+<input type="text" id="taskInput" placeholder="Введіть завдання">
+<button onclick="addTask()">Додати</button>
+</div>
+
+<ul id="taskList"></ul>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
+
+СSS
+body{
+font-family: Arial, sans-serif;
+background: linear-gradient(135deg,#ffd8a8,#ffe8cc);
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+.container{
+background:#fff7ed;
+padding:25px;
+border-radius:12px;
+width:420px;
+box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
+
+h1{
+text-align:center;
+color:#b45309;
+margin-bottom:20px;
+}
+
+.input-block{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+
+input{
+flex:1;
+padding:10px;
+border:2px solid #fdba74;
+border-radius:6px;
+outline:none;
+}
+
+input:focus{
+border-color:#fb923c;
+}
+
+button{
+padding:10px 14px;
+border:none;
+background:#f97316;
+color:white;
+border-radius:6px;
+cursor:pointer;
+transition:0.2s;
+}
+
+button:hover{
+background:#ea580c;
+}
+
+ul{
+list-style:none;
+padding:0;
+margin:0;
+}
+
+li{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:10px;
+margin-bottom:8px;
+background:#ffedd5;
+border-radius:6px;
+}
+
+.task-text{
+cursor:pointer;
+}
+
+.completed{
+text-decoration:line-through;
+color:#9a3412;
+opacity:0.7;
+}
+
+.delete-btn{
+background:#ef4444;
+padding:6px 10px;
+border-radius:5px;
+}
+
+.delete-btn:hover{
+background:#dc2626;
+}
+
+JavaScript
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveTasks(){
+localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function renderTasks(){
+
+const list = document.getElementById("taskList");
+list.innerHTML = "";
+
+tasks.forEach((task,index)=>{
+
+const li = document.createElement("li");
+
+const span = document.createElement("span");
+span.textContent = task.text;
+span.classList.add("task-text");
+
+if(task.completed){
+span.classList.add("completed");
+}
+
+span.addEventListener("click", () => {
+toggleTask(index);
+});
+
+const deleteBtn = document.createElement("button");
+deleteBtn.textContent = "✖";
+deleteBtn.classList.add("delete-btn");
+
+deleteBtn.addEventListener("click", () => {
+deleteTask(index);
+});
+
+li.appendChild(span);
+li.appendChild(deleteBtn);
+
+list.appendChild(li);
+
+});
+
+}
+
+function addTask(){
+
+const input = document.getElementById("taskInput");
+const text = input.value.trim();
+
+if(text === "") return;
+
+tasks.push({
+text:text,
+completed:false
+});
+
+input.value = "";
+
+saveTasks();
+renderTasks();
+
+}
+
+function toggleTask(index){
+
+tasks[index].completed = !tasks[index].completed;
+
+saveTasks();
+renderTasks();
+
+}
+
+function deleteTask(index){
+
+tasks.splice(index,1);
+
+saveTasks();
+renderTasks();
+
+}
+
+renderTasks();
