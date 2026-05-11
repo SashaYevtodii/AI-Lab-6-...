@@ -1,0 +1,114 @@
+% FCM Clustering without Fuzzy Logic Toolbox
+% Односторонняя сигмоїда + ручна реалізація FCM
+
+clear; clc; close all;
+
+%% 1. Генерація даних
+rng(42);
+N = 1000;
+x = rand(1, N);  % рівномірний розподіл [0,1]
+
+%% 2. Одностороння сигмоїда
+a = 10;        % крутість
+c = 0.5;       % центр
+
+sigmf = @(x, params) 1 ./ (1 + exp(-params(1) * (x - params(2))));
+
+params = [a, c];
+y = sigmf(x, params);
+
+%% 3. Графік сигмоїди
+figure('Name', 'Figure 1: Одностороння сигмоїда');
+x_plot = linspace(0, 1, 1000);
+y_plot = sigmf(x_plot, params);
+plot(x_plot, y_plot, 'b-', 'LineWidth', 2);
+xlabel('x'); ylabel('sigmf(x)');
+title('Одностороння сигмоїда');
+grid on;
+axis([0 1 0 1]);
+
+%% 4. Підготовка даних для FCM
+data = [x; y]';   % N x 2 матриця
+
+%% 5. Власна реалізація FCM
+disp('=== Запуск FCM кластеризації ===');
+
+numClusters = 3;
+m = 2.0;           % фаззі-ексцентр
+maxIter = 100;
+epsilon = 1e-5;
+
+% --- Ініціалізація матриці належності ---
+U = rand(numClusters, N);
+U = U ./ sum(U, 1);   % нормалізація по стовпцях
+
+objFunHistory = zeros(maxIter, 1);
+
+for iter = 1:maxIter
+    % Степені належності
+    Um = U .^ m;   % numClusters x N
+
+    % Обчислення центрів кластерів
+    centers = (Um * data) ./ sum(Um, 2);  % numClusters x 2
+
+    % Обчислення відстаней (евклідових)
+    dist = zeros(numClusters, N);
+    for k = 1:numClusters
+        diff = data - centers(k, :);    % N x 2
+        dist(k, :) = sum(diff .^ 2, 2)';  % 1 x N
+    end
+    dist = max(dist, 1e-10);  % уникнення ділення на 0
+
+    % Цільова функція
+    objFunHistory(iter) = sum(sum(Um .* dist));
+
+    % Оновлення матриці належності
+    U_new = zeros(numClusters, N);
+    for k = 1:numClusters
+        for j = 1:numClusters
+            U_new(k, :) = U_new(k, :) + (dist(k, :) ./ dist(j, :)) .^ (1/(m-1));
+        end
+    end
+    U_new = 1 ./ U_new;
+    U_new = U_new ./ sum(U_new, 1);
+
+    % Перевірка збіжності
+    if max(max(abs(U_new - U))) < epsilon
+        fprintf('FCM збігся на ітерації %d\n', iter);
+        break;
+    end
+    U = U_new;
+end
+
+U = U_new;
+objFun = objFunHistory(1:iter);
+
+fprintf('Кількість кластерів: %d\n', numClusters);
+fprintf('Центри кластерів:\n');
+disp(centers);
+
+%% 6. Визначення жорстких міток
+[~, clusterIdx] = max(U, [], 1);
+
+%% 7. Візуалізація кластерів
+colors = {'r', 'g', 'b'};
+figure('Name', 'Figure 2: FCM кластеризація сигмоїди');
+hold on;
+for k = 1:numClusters
+    idx = clusterIdx == k;
+    scatter(data(idx, 1), data(idx, 2), 5, colors{k}, 'filled', 'MarkerFaceAlpha', 0.4);
+end
+scatter(centers(:,1), centers(:,2), 200, 'k', 'x', 'LineWidth', 3);
+xlabel('x'); ylabel('sigmf(x)');
+title('FCM кластеризація (без Fuzzy Logic Toolbox)');
+legend({'Кластер 1','Кластер 2','Кластер 3','Центри'}, 'Location','best');
+grid on;
+
+%% 8. Цільова функція
+figure('Name', 'Figure 3: Збіжність FCM');
+plot(1:length(objFun), objFun, 'k-o', 'MarkerSize', 4);
+xlabel('Ітерація'); ylabel('Цільова функція');
+title('Збіжність FCM');
+grid on;
+
+disp('=== Готово ===');
